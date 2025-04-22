@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Couleurs principales */
+  --main: #ff6b6b;
+  --overlay: rgba(0, 0, 0, 0.8);
+  --supayellow: #FFDF00;
+
+  /* Couleurs de base */
+  --bg: #f5f5f5;
+  --bw: #fff;
+  --blank: #000;
+  --border: #000;
+  --text: #000;
+  --mtext: #fff;
+  --ring: #000;
+  --ring-offset: #fff;
+
+  /* Couleurs sémantiques */
+  --success: #22c55e;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+
+  /* Dimensions et espacements */
+  --border-radius: 6px;
+  --box-shadow-x: 6px;
+  --box-shadow-y: 6px;
+  --reverse-box-shadow-x: -6px;
+  --reverse-box-shadow-y: -6px;
+  
+  /* Typographie */
+  --base-font-weight: 500;
+  --heading-font-weight: 700;
+  --base-font-size: 16px;
+  --heading-font-size: 24px;
+
+  /* Effets */
+  --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
+  --transition: all 0.3s ease;
+}
+
+.dark {
+  /* Couleurs de base (mode sombre) */
+  --bg: #1a1a1a;
+  --bw: #212121;
+  --blank: #fff;
+  --border: #333;
+  --text: #f0f0f0;
+  --mtext: #fff;
+  --ring: #333;
+  --ring-offset: #1a1a1a;
+
+  /* Couleurs sémantiques (mode sombre) */
+  --success: #4ade80;
+  --error: #f87171;
+  --warning: #fbbf24;
+  --info: #60a5fa;
+
+  /* Effets (mode sombre) */
+  --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px #333;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: var(--base-font-size);
+  }
+
+  body {
+    @apply bg-bg text-text;
+    font-weight: var(--base-font-weight);
+    line-height: 1.5;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: var(--heading-font-weight);
+    font-size: var(--heading-font-size);
+  }
+}
+
+@layer base {
+  :root {
+    /* Variables pour la sidebar (mode clair) */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Variables pour la sidebar (mode sombre) */
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .transition-all {
+    transition: var(--transition);
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .calendar-preview,
+  .calendar-preview * {
+    visibility: visible;
+  }
+  .calendar-preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
