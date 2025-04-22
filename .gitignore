@@ -39,6 +39,7 @@ yarn-error.log*
 /scripts
 .cursorrules
 /cursor
+.cursor
 PRINCIPLES.md
 SECURITY.md
 LICENSE
