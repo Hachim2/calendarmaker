@@ -6,7 +6,7 @@
     "dev": "bun run next dev --turbopack",
     "build": "bun run next build",
     "start": "bun run next start",
-    "update:types": "supabase gen types typescript --linked --nlioawydygxfbpokczup public > src/lib/database.types.ts",
+    "update:types": "supabase gen types typescript --linked --public > src/lib/database.types.ts",
     "lint": "next lint"
   },
   "dependencies": {
