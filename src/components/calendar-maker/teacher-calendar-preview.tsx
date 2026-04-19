@@ -1,131 +1,80 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/lib/hooks/use-toast"
-import { Download, Printer, CalendarDays } from "lucide-react"
-import { generateSchedule } from "@/lib/schedule-generator"
+import { FileDown, Printer, CalendarDays } from "lucide-react"
+import type { ScheduleGenerationResult } from "@/lib/schedule-generator"
+import { exportCalendarToPdf } from "@/lib/export-pdf"
 
 interface TeacherCalendarPreviewProps {
   formData: any
+  generatedSchedule: ScheduleGenerationResult | null
   isAuthenticated: boolean
 }
 
-export function TeacherCalendarPreview({ formData, isAuthenticated }: TeacherCalendarPreviewProps) {
+const DAY_ORDER = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
+
+const SUBJECT_COLORS: Record<string, string> = {
+  "Mathématiques": "bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-200",
+  "Français": "bg-rose-100 border-rose-300 text-rose-800 dark:bg-rose-900/30 dark:border-rose-700 dark:text-rose-200",
+  "Histoire-Géographie": "bg-amber-100 border-amber-300 text-amber-800 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-200",
+  "Anglais": "bg-emerald-100 border-emerald-300 text-emerald-800 dark:bg-emerald-900/30 dark:border-emerald-700 dark:text-emerald-200",
+  "SVT": "bg-green-100 border-green-300 text-green-800 dark:bg-green-900/30 dark:border-green-700 dark:text-green-200",
+  "Physique-Chimie": "bg-purple-100 border-purple-300 text-purple-800 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-200",
+  "EPS": "bg-orange-100 border-orange-300 text-orange-800 dark:bg-orange-900/30 dark:border-orange-700 dark:text-orange-200",
+}
+
+function subjectColor(subject: string): string {
+  return SUBJECT_COLORS[subject] ?? "bg-slate-100 border-slate-300 text-slate-700 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200"
+}
+
+function teacherDisplayName(teacher: any): string {
+  if (!teacher) return "Inconnu"
+  return teacher.name || `${teacher.first_name || ""} ${teacher.last_name || ""}`.trim() || "Inconnu"
+}
+
+export function TeacherCalendarPreview({ formData, generatedSchedule, isAuthenticated }: TeacherCalendarPreviewProps) {
   const { toast } = useToast()
   const [selectedTeacher, setSelectedTeacher] = useState<string>("")
-  const [calendar, setCalendar] = useState<any>({})
-  const [isGenerating, setIsGenerating] = useState(false)
 
-  const teachers = formData.teachers || []
-  const schedule = formData.schedule || []
-  const courses = formData.courses || []
-  const timeSlots = formData.timeSlots || []
-  const rooms = formData.rooms || []
-  const classes = formData.classes || []
+  const teachers = formData?.teachers || []
 
-  useEffect(() => {
-    if (selectedTeacher) {
-      generateCalendar(selectedTeacher)
+  const calendar = selectedTeacher ? generatedSchedule?.teacherSchedules?.[selectedTeacher] ?? {} : {}
+
+  const sortedDays = Object.keys(calendar).sort(
+    (a, b) => (DAY_ORDER.indexOf(a) ?? 99) - (DAY_ORDER.indexOf(b) ?? 99),
+  )
+
+  const selectedTeacherObj = teachers.find(
+    (t: any) => t.id === selectedTeacher || `teacher-${teachers.indexOf(t)}` === selectedTeacher,
+  )
+  const selectedTeacherName = selectedTeacherObj ? teacherDisplayName(selectedTeacherObj) : "Enseignant"
+
+  const handleExportPdf = () => {
+    if (!selectedTeacher || !sortedDays.length) {
+      toast({ title: "Rien à exporter", description: "Sélectionnez un enseignant avec un calendrier.", variant: "destructive" })
+      return
     }
-  }, [selectedTeacher, schedule])
-
-  const generateCalendar = (teacherId: string) => {
-    setIsGenerating(true)
-
-    try {
-      // Utiliser l'algorithme de génération
-      const result = generateSchedule(formData)
-
-      if (result.success) {
-        setCalendar(result.teacherSchedules[teacherId] || {})
-
-        toast({
-          title: "Calendrier généré",
-          description: "Le calendrier de l'enseignant a été généré avec succès.",
-        })
-      } else {
-        toast({
-          title: "Erreur",
-          description: result.message,
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      console.error("Erreur lors de la génération du calendrier:", error)
-      toast({
-        title: "Erreur inattendue",
-        description: "Une erreur est survenue lors de la génération du calendrier.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
-  const handleDownload = () => {
-    try {
-      // Préparer les données pour le téléchargement
-      const selectedTeacherName =
-        teachers.find((t: any) => t.id === selectedTeacher || `teacher-${teachers.indexOf(t)}` === selectedTeacher)
-          ?.name || "Enseignant"
-
-      const calendarData = {
-        teacher: selectedTeacherName,
-        subject:
-          teachers.find((t: any) => t.id === selectedTeacher || `teacher-${teachers.indexOf(t)}` === selectedTeacher)
-            ?.subject || "",
-        calendar: calendar,
-        generatedAt: new Date().toISOString(),
-        school: formData.school?.name || "École",
-      }
-
-      // Créer un blob avec les données
-      const blob = new Blob([JSON.stringify(calendarData, null, 2)], { type: "application/json" })
-      const url = URL.createObjectURL(blob)
-
-      // Créer un lien pour télécharger le fichier
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `calendrier-${selectedTeacherName.replace(/\s+/g, "-")}.json`
-      document.body.appendChild(a)
-      a.click()
-
-      // Nettoyer
-      URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-
-      toast({
-        title: "Téléchargement",
-        description: "Le calendrier a été téléchargé avec succès.",
-      })
-    } catch (error) {
-      console.error("Erreur lors du téléchargement:", error)
-      toast({
-        title: "Erreur",
-        description: "Un problème est survenu lors du téléchargement du calendrier.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handlePrint = () => {
-    window.print()
+    exportCalendarToPdf({
+      title: selectedTeacherName,
+      subtitle: selectedTeacherObj?.subject ? `Matière : ${selectedTeacherObj.subject}` : undefined,
+      schoolName: formData?.school?.name,
+      calendar,
+      showTeacher: false,
+      showClass: true,
+    })
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="teacher-select">Sélectionner un enseignant</Label>
+    <div className="space-y-5">
+      <div className="space-y-1 max-w-xs">
+        <Label>Enseignant</Label>
         <Select
           value={selectedTeacher}
-          onValueChange={(value) => {
-            setSelectedTeacher(value)
-            setCalendar({}) // Réinitialiser le calendrier
-          }}
+          onValueChange={(v) => setSelectedTeacher(v)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Sélectionner un enseignant" />
@@ -133,105 +82,84 @@ export function TeacherCalendarPreview({ formData, isAuthenticated }: TeacherCal
           <SelectContent>
             {teachers.map((teacher: any, i: number) => (
               <SelectItem key={i} value={teacher.id || `teacher-${i}`}>
-                {teacher.name} ({teacher.subject})
+                {teacherDisplayName(teacher)}
+                {teacher.subject ? ` — ${teacher.subject}` : ""}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      <Button
-        onClick={() => {
-          if (selectedTeacher) {
-            handleDownload()
-          } else {
-            toast({
-              title: "Sélection requise",
-              description: "Veuillez sélectionner un enseignant.",
-              variant: "destructive",
-            })
-          }
-        }}
-        disabled={!selectedTeacher || isGenerating || Object.keys(calendar).length === 0}
-        className="mt-4 w-full"
-      >
-        {isGenerating ? (
-          <>
-            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-            Génération...
-          </>
-        ) : (
-          <>
-            <CalendarDays className="h-4 w-4 mr-2" />
-            Télécharger le calendrier
-          </>
-        )}
-      </Button>
-
-      {selectedTeacher && Object.keys(calendar).length > 0 && (
+      {selectedTeacher && sortedDays.length > 0 ? (
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="font-medium text-lg">
-              Emploi du temps -{" "}
-              {
-                teachers.find(
-                  (t: any) => t.id === selectedTeacher || `teacher-${teachers.indexOf(t)}` === selectedTeacher,
-                )?.name
-              }
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100">
+              {selectedTeacherName}
+              {selectedTeacherObj?.subject ? (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">— {selectedTeacherObj.subject}</span>
+              ) : null}
             </h3>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm" onClick={handleDownload}>
-                <Download className="h-4 w-4 mr-1" />
-                Télécharger
+            <div className="flex gap-2 no-print">
+              <Button variant="outline" size="sm" onClick={handleExportPdf}>
+                <FileDown className="h-4 w-4 mr-1" />
+                Exporter PDF
               </Button>
-              <Button variant="outline" size="sm" onClick={handlePrint}>
+              <Button variant="outline" size="sm" onClick={handleExportPdf}>
                 <Printer className="h-4 w-4 mr-1" />
                 Imprimer
               </Button>
             </div>
           </div>
 
-          <div className="print:shadow-none">
-            {Object.entries(calendar).map(([day, slots]: [string, any]) => (
-              <Card key={day} className="mb-4">
-                <CardContent className="p-4">
-                  <h4 className="font-medium text-lg mb-2">{day}</h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    {slots.map((slot: any, i: number) => (
-                      <div
-                        key={i}
-                        className={`p-3 rounded-md ${slot.subject ? "bg-primary/10" : "bg-muted"} transition-colors`}
-                      >
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">
-                            {slot.start} - {slot.end}
-                          </span>
-                          {slot.subject && (
-                            <div className="flex space-x-2">
-                              <span className="text-sm bg-primary/20 px-2 py-1 rounded">{slot.room}</span>
-                              <span className="text-sm bg-secondary/20 px-2 py-1 rounded">{slot.class}</span>
-                            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 print:grid-cols-3">
+            {sortedDays.map((day) => (
+              <div key={day} className="border rounded-lg overflow-hidden shadow-sm">
+                <div className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white px-4 py-2 font-medium text-sm">
+                  {day}
+                </div>
+                <div className="divide-y">
+                  {(calendar[day] as any[]).map((slot: any, i: number) => (
+                    <div
+                      key={i}
+                      className={`px-3 py-2.5 ${slot.subject ? "" : "bg-slate-50 dark:bg-slate-900/50"}`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 tabular-nums">
+                          {slot.start} – {slot.end}
+                        </span>
+                        <div className="flex gap-1">
+                          {slot.room && (
+                            <span className="text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">
+                              {slot.room}
+                            </span>
+                          )}
+                          {slot.class && (
+                            <span className="text-xs bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 px-1.5 py-0.5 rounded text-indigo-700 dark:text-indigo-300">
+                              {slot.class}
+                            </span>
                           )}
                         </div>
-                        <div className="mt-1">{slot.subject || "Libre"}</div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                      {slot.subject ? (
+                        <div className={`rounded px-2 py-1.5 border text-sm ${subjectColor(slot.subject)}`}>
+                          <div className="font-semibold">{slot.subject}</div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-slate-400 dark:text-slate-600 italic">Libre</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>
-      )}
-
-      {selectedTeacher && Object.keys(calendar).length === 0 && !isGenerating && (
-        <div className="text-center py-8 border rounded-md bg-muted/10">
-          <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-          <p className="text-muted-foreground">
-            Aucun emploi du temps n'a été généré. Veuillez patienter pendant la génération.
-          </p>
+      ) : selectedTeacher ? (
+        <div className="text-center py-12 border rounded-lg bg-muted/10">
+          <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+          <p className="text-muted-foreground">Aucun cours planifié pour cet enseignant.</p>
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

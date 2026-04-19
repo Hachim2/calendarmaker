@@ -13,20 +13,21 @@ interface SchoolFormProps {
 export function SchoolForm({ formData, updateFormData }: SchoolFormProps) {
   const [school, setSchool] = useState(formData.school || {})
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    updateFormData(school)
+  const handleChange = (field: string, value: string) => {
+    const updated = { ...school, [field]: value }
+    setSchool(updated)
+    updateFormData(updated)
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">Nom de l'école</Label>
+        <Label htmlFor="name">Nom de l'école *</Label>
         <Input
           id="name"
           value={school.name || ""}
-          onChange={(e) => setSchool({ ...school, name: e.target.value })}
-          required
+          onChange={(e) => handleChange("name", e.target.value)}
+          placeholder="Ex: Collège Jean Moulin"
         />
       </div>
 
@@ -35,8 +36,8 @@ export function SchoolForm({ formData, updateFormData }: SchoolFormProps) {
         <Textarea
           id="address"
           value={school.address || ""}
-          onChange={(e) => setSchool({ ...school, address: e.target.value })}
-          required
+          onChange={(e) => handleChange("address", e.target.value)}
+          placeholder="Adresse complète de l'établissement"
         />
       </div>
 
@@ -46,8 +47,8 @@ export function SchoolForm({ formData, updateFormData }: SchoolFormProps) {
           id="phone"
           type="tel"
           value={school.phone || ""}
-          onChange={(e) => setSchool({ ...school, phone: e.target.value })}
-          required
+          onChange={(e) => handleChange("phone", e.target.value)}
+          placeholder="Ex: 01 23 45 67 89"
         />
       </div>
 
@@ -57,10 +58,10 @@ export function SchoolForm({ formData, updateFormData }: SchoolFormProps) {
           id="email"
           type="email"
           value={school.email || ""}
-          onChange={(e) => setSchool({ ...school, email: e.target.value })}
-          required
+          onChange={(e) => handleChange("email", e.target.value)}
+          placeholder="Ex: contact@college-jeanmoulin.fr"
         />
       </div>
-    </form>
+    </div>
   )
 }
